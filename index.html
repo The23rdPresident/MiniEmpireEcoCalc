@@ -167,6 +167,7 @@
     border-radius: var(--radius-lg); padding: 1rem 1.1rem;
     display: flex; flex-direction: column; gap: 12px;
     transition: border-color 0.2s;
+    overflow: visible;
   }
   .calc-card:hover { border-color: var(--border2); }
 
@@ -209,7 +210,6 @@
   .fields {
     display: flex; flex-direction: column; gap: 0;
     border: 1px solid var(--border); border-radius: var(--radius);
-    overflow: hidden;
   }
 
   .field {
@@ -260,10 +260,10 @@
     background-repeat: no-repeat; background-position: center;
   }
   .num-pick-dropdown {
-    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    display: none; position: fixed;
     background: var(--bg3); border: 1px solid var(--border2);
     border-radius: var(--radius); z-index: 200;
-    overflow-y: auto; max-height: 200px;
+    overflow-y: auto; max-height: 200px; min-width: 82px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.55);
   }
   .num-pick-dropdown.open { display: block; }
@@ -699,11 +699,15 @@ function togglePicker(id) {
   const el = document.getElementById(id);
   if (!el) return;
   const dd = el.querySelector('.num-pick-dropdown');
+  const btn = el.querySelector('.num-pick-btn');
   const wasOpen = dd.classList.contains('open');
   closeAllPickers();
   if (!wasOpen) {
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.style.width = rect.width + 'px';
     dd.classList.add('open');
-    // Scroll selected option into view
     const sel = dd.querySelector('.selected');
     if (sel) sel.scrollIntoView({ block: 'nearest' });
   }
