@@ -242,6 +242,39 @@
     border-color: var(--border2);
   }
 
+  /* Custom compact number picker */
+  .num-pick { position: relative; width: 82px; flex-shrink: 0; }
+  .num-pick-btn {
+    width: 100%;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700;
+    padding: 5px 8px; cursor: pointer; outline: none;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color 0.15s;
+  }
+  .num-pick-btn:hover { border-color: rgba(255,255,255,0.25); }
+  .num-pick-arrow {
+    width: 10px; height: 6px; flex-shrink: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center;
+  }
+  .num-pick-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); z-index: 200;
+    overflow-y: auto; max-height: 200px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+  }
+  .num-pick-dropdown.open { display: block; }
+  .num-pick-option {
+    padding: 6px 10px;
+    font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--muted); cursor: pointer; transition: background 0.1s, color 0.1s;
+  }
+  .num-pick-option:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .num-pick-option.selected { color: var(--accent); background: rgba(240,180,41,0.08); }
+
   /* ── Eco result ── */
   .eco-result {
     border-top: 1px solid var(--border);
@@ -578,22 +611,22 @@ function renderAll() {
         <div class="field">
           <span class="field-label">Farms</span>
           <span class="cap-note">max ${fm}</span>
-          <select onchange="updateCard(${c.id},'farms',this.value)">${opts(fm,c.farms)}</select>
+          ${makePicker(c.id,'farms',fm,c.farms)}
         </div>
         <div class="field">
           <span class="field-label">Oil Pumps</span>
           <span class="cap-note">max ${fm}</span>
-          <select onchange="updateCard(${c.id},'pumps',this.value)">${opts(fm,c.pumps)}</select>
+          ${makePicker(c.id,'pumps',fm,c.pumps)}
         </div>
         <div class="field">
           <span class="field-label">Gold Mines</span>
           <span class="cap-note">max ${gm}</span>
-          <select onchange="updateCard(${c.id},'gold',this.value)">${opts(gm,c.gold)}</select>
+          ${makePicker(c.id,'gold',gm,c.gold)}
         </div>
         <div class="field">
           <span class="field-label">Oil Rigs</span>
           <span class="cap-note">max ${om}</span>
-          <select onchange="updateCard(${c.id},'oil',this.value)">${opts(om,c.oil)}</select>
+          ${makePicker(c.id,'oil',om,c.oil)}
         </div>
       </div>
 
@@ -646,6 +679,48 @@ function renderSummary() {
     </div>
   `;
 }
+
+function makePicker(cardId, field, max, val) {
+  const id = `pick-${cardId}-${field}`;
+  let items = '';
+  for (let i = 0; i <= max; i++) {
+    items += `<div class="num-pick-option${i===val?' selected':''}" onclick="pickVal('${id}',${cardId},'${field}',${i})">${i}</div>`;
+  }
+  return `<div class="num-pick" id="${id}">
+    <button type="button" class="num-pick-btn" onclick="togglePicker('${id}')">
+      <span class="num-pick-val">${val}</span>
+      <span class="num-pick-arrow"></span>
+    </button>
+    <div class="num-pick-dropdown">${items}</div>
+  </div>`;
+}
+
+function togglePicker(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const dd = el.querySelector('.num-pick-dropdown');
+  const wasOpen = dd.classList.contains('open');
+  closeAllPickers();
+  if (!wasOpen) {
+    dd.classList.add('open');
+    // Scroll selected option into view
+    const sel = dd.querySelector('.selected');
+    if (sel) sel.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function pickVal(pickerId, cardId, field, val) {
+  updateCard(cardId, field, val);
+  // updateCard calls renderAll which re-renders, so picker closes naturally
+}
+
+function closeAllPickers() {
+  document.querySelectorAll('.num-pick-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.num-pick')) closeAllPickers();
+});
 
 // Init
 rebuildMapSelect();
