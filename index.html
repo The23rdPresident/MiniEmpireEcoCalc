@@ -430,21 +430,15 @@ function maxPlayers() {
 
 function onModeChange() {
   currentMode = document.getElementById('mode-sel').value;
+  cards = [];
   rebuildMapSelect();
-  if (currentMode === 'ranked') {
-    const allowed = new Set(['Blue','Red']);
-    cards = cards.filter(c => allowed.has(c.team));
-    const count = {};
-    cards = cards.filter(c => { count[c.team] = (count[c.team]||0)+1; return count[c.team] <= 3; });
-  }
-  clampAllCards();
   renderAll();
 }
 
 function onMapChange() {
   const name = document.getElementById('map-sel').value;
   currentMap = MAPS[currentMode].find(m => m.name === name) || MAPS[currentMode][0];
-  clampAllCards();
+  cards = [];
   renderAll();
 }
 
