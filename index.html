@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Empires — Eco Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d0f14;
+    --bg2:      #13161e;
+    --bg3:      #1a1e2a;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.14);
+    --text:     #e8eaf0;
+    --muted:    #6b7280;
+    --accent:   #f0b429;
+    --radius:   8px;
+    --radius-lg:12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(240,180,41,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,180,41,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .page {
+    position: relative; z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+
+  /* ── Header ── */
+  .site-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border2);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .logo-eyebrow {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--accent);
+    letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .logo-title { font-size: 30px; font-weight: 700; color: var(--text); line-height: 1; letter-spacing: 0.02em; }
+  .logo-title span { color: var(--accent); }
+
+  .eco-values { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .eco-val-chip {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 5px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted); line-height: 1.5; text-align: center;
+  }
+  .eco-val-chip strong { color: var(--accent); font-weight: 400; display: block; font-size: 14px; }
+
+  /* ── Config bar ── */
+  .config-bar {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+    display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-end;
+  }
+  .config-group { display: flex; flex-direction: column; gap: 5px; }
+  .config-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .map-caps { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+  .cap-chip {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 12px; line-height: 1.5; text-align: center;
+  }
+  .cap-chip b { color: var(--text); font-weight: 400; display: block; font-size: 14px; }
+  .mode-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 4px; border: 1px solid;
+  }
+  .mode-badge.ranked   { color: #f87171; border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.08); }
+  .mode-badge.unranked { color: #60a5fa; border-color: rgba(96,165,250,0.35);  background: rgba(96,165,250,0.08); }
+  .mode-badge.custom   { color: #a78bfa; border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.08); }
+
+  /* ── Global select style ── */
+  select {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600;
+    padding: 7px 30px 7px 11px; cursor: pointer; outline: none;
+    transition: border-color 0.15s; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  select:hover, select:focus { border-color: var(--border2); }
+  select:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
+  }
+  .section-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .header-btns { display: flex; gap: 8px; align-items: center; }
+
+  .add-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #0d0f14;
+    border: none; border-radius: var(--radius);
+    padding: 9px 18px;
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700;
+    letter-spacing: 0.05em; cursor: pointer;
+    transition: background 0.15s, transform 0.1s; text-transform: uppercase;
+  }
+  .add-btn:hover { background: #f7c84a; }
+  .add-btn:active { transform: scale(0.97); }
+  .add-btn:disabled { opacity: 0.35; cursor: not-allowed; background: var(--accent); transform: none; }
+  .add-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .reset-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    padding: 9px 14px;
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.04em; cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    text-transform: uppercase;
+  }
+  .reset-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+  .reset-btn:active { transform: scale(0.97); }
+  .reset-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ── Cards grid ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  .calc-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1rem 1.1rem;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .calc-card:hover { border-color: var(--border2); }
+
+  /* Card top row */
+  .card-top { display: flex; align-items: center; gap: 8px; }
+  .team-dot-lg { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+  .team-sel {
+    background: transparent; border: none;
+    font-size: 17px; font-weight: 700;
+    font-family: 'Rajdhani', sans-serif;
+    color: inherit;
+    padding: 0 20px 0 0; letter-spacing: 0.04em;
+    flex: 1; min-width: 0; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 2px center;
+  }
+  .team-sel:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    background-image: none;
+  }
+
+  .slot-sel {
+    font-size: 13px;
+    padding: 5px 24px 5px 9px;
+    flex-shrink: 0;
+  }
+
+  .remove-btn {
+    background: none; border: 1px solid transparent; color: var(--muted);
+    cursor: pointer; border-radius: 6px; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .remove-btn:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+
+  /* ── Resource fields (vertical) ── */
+  .fields {
+    display: flex; flex-direction: column; gap: 0;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .field {
+    display: flex; align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    background: var(--bg3);
+  }
+  .field:last-child { border-bottom: none; }
+  .field:nth-child(even) { background: rgba(255,255,255,0.015); }
+
+  .field-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    flex: 1;
+    white-space: nowrap;
+  }
+  .cap-note {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted); opacity: 0.45;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .field select {
+    width: 82px; flex-shrink: 0;
+    font-size: 15px; font-weight: 700;
+    padding: 4px 24px 4px 8px;
+    border-color: var(--border2);
+  }
+
+  /* ── Eco result ── */
+  .eco-result {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .eco-top { display: flex; align-items: baseline; gap: 8px; }
+  .eco-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .eco-num {
+    font-size: 30px; font-weight: 700; color: var(--accent);
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .eco-unit {
+    font-size: 13px; color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .breakdown {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--muted); opacity: 0.6;
+    line-height: 1.7; letter-spacing: 0.02em;
+  }
+
+  /* ── Summary ── */
+  .summary-section { margin-top: 2rem; }
+  .summary-title {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .team-totals {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 8px; margin-bottom: 10px;
+  }
+  .team-total-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .team-total-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .team-total-name {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .team-total-val { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.2; }
+
+  .grand-bar {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 12px 16px;
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .grand-lbl {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .grand-val { font-size: 30px; font-weight: 700; color: var(--accent); line-height: 1; }
+
+  .empty-state {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--muted); font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; letter-spacing: 0.05em;
+    border: 1px dashed var(--border); border-radius: var(--radius-lg);
+    grid-column: 1 / -1;
+  }
+  .empty-state p { margin-top: 8px; }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--border); text-align: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 520px) {
+    .logo-title { font-size: 24px; }
+    .eco-values { display: none; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .map-caps { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <div class="logo-block">
+      <div class="logo-eyebrow">roblox tool</div>
+      <h1 class="logo-title">Mini<span>Empires</span> Eco Calc</h1>
+    </div>
+    <div class="eco-values">
+      <div class="eco-val-chip"><strong>500</strong>Core</div>
+      <div class="eco-val-chip"><strong>700</strong>Farm</div>
+      <div class="eco-val-chip"><strong>2,300</strong>Pump</div>
+      <div class="eco-val-chip"><strong>4,800</strong>Gold Mine</div>
+      <div class="eco-val-chip"><strong>8,000</strong>Oil Rig</div>
+    </div>
+  </header>
+
+  <div class="config-bar">
+    <div class="config-group">
+      <div class="config-label">Gamemode</div>
+      <select id="mode-sel" onchange="onModeChange()">
+        <option value="unranked">Unranked</option>
+        <option value="ranked">Ranked</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="config-group">
+      <div class="config-label">Map</div>
+      <select id="map-sel" onchange="onMapChange()"></select>
+    </div>
+    <div id="mode-badge-wrap" style="display:flex;align-items:flex-end;padding-bottom:2px;"></div>
+    <div class="map-caps" id="map-caps"></div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-label" id="player-label">Players</div>
+    <div class="header-btns">
+      <button class="reset-btn" onclick="resetAll()" title="Clear everything and start over">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 8a6 6 0 1 0 1.5-3.9L2 2.5V6h3.5L4 4.6A4.5 4.5 0 1 1 3.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Reset
+      </button>
+      <button class="add-btn" id="add-btn" onclick="addCard()">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Add Player
+      </button>
+    </div>
+  </div>
+
+  <div class="cards-grid" id="cards"></div>
+  <div class="summary-section" id="summary"></div>
+
+  <footer>built for mini empires &middot; values subject to game updates</footer>
+</div>
+
+<script>
+const ALL_TEAMS = [
+  { name: 'Blue',   hex: '#3b82f6' },
+  { name: 'Green',  hex: '#22c55e' },
+  { name: 'Purple', hex: '#a855f7' },
+  { name: 'Orange', hex: '#f97316' },
+  { name: 'Red',    hex: '#ef4444' },
+  { name: 'Yellow', hex: '#eab308' },
+];
+
+const MAPS = {
+  unranked: [
+    { name: 'Vertigo',   farms: 20, gold: 4,  oil: 5 },
+    { name: 'Summit',    farms: 24, gold: 5,  oil: 6 },
+    { name: 'Horizon',   farms: 20, gold: 9,  oil: 7 },
+    { name: 'Breaktide', farms: 24, gold: 9,  oil: 6 },
+    { name: 'Abyss',     farms: 13, gold: 6,  oil: 3 },
+  ],
+  ranked: [
+    { name: 'Dune',    farms: 13, gold: 6,  oil: 3 },
+    { name: 'Inferno', farms: 26, gold: 12, oil: 6 },
+  ],
+  custom: [
+    { name: 'Barrens', farms: 34, gold: 8, oil: 0 },
+  ],
+};
+
+const VALS = { core: 500, farm: 700, pump: 2300, gold: 4800, oil: 8000 };
+
+let cards = [];
+let nextId = 1;
+let currentMode = 'unranked';
+let currentMap = MAPS.unranked[0];
+
+function getAvailableTeams() {
+  if (currentMode === 'ranked') return ALL_TEAMS.filter(t => t.name === 'Blue' || t.name === 'Red');
+  return ALL_TEAMS;
+}
+
+function maxPlayers() {
+  return currentMode === 'ranked' ? 6 : 12;
+}
+
+function onModeChange() {
+  currentMode = document.getElementById('mode-sel').value;
+  rebuildMapSelect();
+  if (currentMode === 'ranked') {
+    const allowed = new Set(['Blue','Red']);
+    cards = cards.filter(c => allowed.has(c.team));
+    const count = {};
+    cards = cards.filter(c => { count[c.team] = (count[c.team]||0)+1; return count[c.team] <= 3; });
+  }
+  clampAllCards();
+  renderAll();
+}
+
+function onMapChange() {
+  const name = document.getElementById('map-sel').value;
+  currentMap = MAPS[currentMode].find(m => m.name === name) || MAPS[currentMode][0];
+  clampAllCards();
+  renderAll();
+}
+
+function clampAllCards() {
+  cards.forEach(c => {
+    c.farms = Math.min(c.farms, currentMap.farms);
+    c.pumps = Math.min(c.pumps, currentMap.farms);
+    c.gold  = Math.min(c.gold,  currentMap.gold);
+    c.oil   = Math.min(c.oil,   currentMap.oil);
+  });
+}
+
+function rebuildMapSelect() {
+  const sel = document.getElementById('map-sel');
+  const maps = MAPS[currentMode];
+  sel.innerHTML = maps.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+  currentMap = maps[0];
+}
+
+function getNextDefaults() {
+  const teams = getAvailableTeams();
+  const used = {};
+  cards.forEach(c => { used[c.team+'|'+c.slot] = true; });
+  for (const t of teams)
+    for (let slot = 1; slot <= 2; slot++)
+      if (!used[t.name+'|'+slot]) return { team: t.name, slot };
+  return { team: teams[0].name, slot: 1 };
+}
+
+function addCard() {
+  if (cards.length >= maxPlayers()) return;
+  const { team, slot } = getNextDefaults();
+  cards.push({ id: nextId++, team, slot, farms: 0, pumps: 0, gold: 0, oil: 0 });
+  renderAll();
+}
+
+function removeCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  renderAll();
+}
+
+function updateCard(id, field, val) {
+  const c = cards.find(c => c.id === id);
+  if (!c) return;
+  c[field] = (field === 'slot') ? parseInt(val) : (isNaN(val) ? val : parseInt(val));
+  renderAll();
+}
+
+function resetAll() {
+  cards = [];
+  currentMode = 'unranked';
+  currentMap = MAPS.unranked[0];
+  document.getElementById('mode-sel').value = 'unranked';
+  rebuildMapSelect();
+  renderAll();
+}
+
+function calcEco(c) {
+  return VALS.core + c.farms*VALS.farm + c.pumps*VALS.pump + c.gold*VALS.gold + c.oil*VALS.oil;
+}
+
+function opts(max, val) {
+  let s = '';
+  for (let i = 0; i <= max; i++) s += `<option value="${i}"${i===val?' selected':''}>${i}</option>`;
+  return s;
+}
+
+function teamOpts(sel) {
+  return getAvailableTeams().map(t =>
+    `<option value="${t.name}"${t.name===sel?' selected':''}>${t.name}</option>`
+  ).join('');
+}
+
+function renderAll() {
+  // Config UI
+  const badgeWrap = document.getElementById('mode-badge-wrap');
+  const lbl = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+  badgeWrap.innerHTML = `<span class="mode-badge ${currentMode}">${lbl}</span>`;
+
+  document.getElementById('map-caps').innerHTML = `
+    <div class="cap-chip"><b>${currentMap.farms}</b>Farm / Pump cap</div>
+    <div class="cap-chip"><b>${currentMap.gold}</b>Gold cap</div>
+    <div class="cap-chip"><b>${currentMap.oil}</b>Oil Rig cap</div>
+  `;
+
+  document.getElementById('add-btn').disabled = cards.length >= maxPlayers();
+  document.getElementById('player-label').textContent =
+    currentMode === 'ranked' ? 'Players — Ranked 3v3 (Red vs Blue)' : 'Players';
+
+  const container = document.getElementById('cards');
+
+  if (cards.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <div style="font-size:26px;margin-bottom:8px;">⚔</div>
+      <p>No players yet — click Add Player to begin</p>
+    </div>`;
+    document.getElementById('summary').innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '';
+  const isRanked = currentMode === 'ranked';
+  const fm = currentMap.farms, gm = currentMap.gold, om = currentMap.oil;
+
+  cards.forEach(c => {
+    const eco = calcEco(c);
+    const teamInfo = ALL_TEAMS.find(t => t.name === c.team) || ALL_TEAMS[0];
+    const color = teamInfo.hex;
+
+    const el = document.createElement('div');
+    el.className = 'calc-card';
+    el.innerHTML = `
+      <div class="card-top">
+        <div class="team-dot-lg" style="background:${color}"></div>
+        <select class="team-sel" style="color:${color}" onchange="updateCard(${c.id},'team',this.value)"${isRanked?' disabled':''}>${teamOpts(c.team)}</select>
+        <select class="slot-sel" onchange="updateCard(${c.id},'slot',this.value)">
+          <option value="1"${c.slot===1?' selected':''}>Player 1</option>
+          <option value="2"${c.slot===2?' selected':''}>Player 2</option>
+        </select>
+        <button class="remove-btn" onclick="removeCard(${c.id})" title="Remove player">×</button>
+      </div>
+
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Farms</span>
+          <span class="cap-note">max ${fm}</span>
+          <select onchange="updateCard(${c.id},'farms',this.value)">${opts(fm,c.farms)}</select>
+        </div>
+        <div class="field">
+          <span class="field-label">Oil Pumps</span>
+          <span class="cap-note">max ${fm}</span>
+          <select onchange="updateCard(${c.id},'pumps',this.value)">${opts(fm,c.pumps)}</select>
+        </div>
+        <div class="field">
+          <span class="field-label">Gold Mines</span>
+          <span class="cap-note">max ${gm}</span>
+          <select onchange="updateCard(${c.id},'gold',this.value)">${opts(gm,c.gold)}</select>
+        </div>
+        <div class="field">
+          <span class="field-label">Oil Rigs</span>
+          <span class="cap-note">max ${om}</span>
+          <select onchange="updateCard(${c.id},'oil',this.value)">${opts(om,c.oil)}</select>
+        </div>
+      </div>
+
+      <div class="eco-result">
+        <div class="eco-top">
+          <span class="eco-lbl">Eco&nbsp;/&nbsp;min</span>
+          <span class="eco-num">${eco.toLocaleString()}</span>
+          <span class="eco-unit">gold</span>
+        </div>
+        <div class="breakdown">
+          F&nbsp;${(c.farms*VALS.farm).toLocaleString()}
+          &nbsp;&middot;&nbsp;P&nbsp;${(c.pumps*VALS.pump).toLocaleString()}
+          &nbsp;&middot;&nbsp;G&nbsp;${(c.gold*VALS.gold).toLocaleString()}
+          &nbsp;&middot;&nbsp;R&nbsp;${(c.oil*VALS.oil).toLocaleString()}
+          &nbsp;&middot;&nbsp;Core&nbsp;500
+        </div>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+
+  renderSummary();
+}
+
+function renderSummary() {
+  const summary = document.getElementById('summary');
+  const teamMap = {};
+  cards.forEach(c => { teamMap[c.team] = (teamMap[c.team]||0) + calcEco(c); });
+
+  const teamsPresent = ALL_TEAMS.filter(t => teamMap[t.name] !== undefined);
+  const grandTotal = Object.values(teamMap).reduce((a,b) => a+b, 0);
+
+  summary.innerHTML = `
+    <div class="summary-title">Team eco / min</div>
+    <div class="team-totals">
+      ${teamsPresent.map(t => `
+        <div class="team-total-card">
+          <div class="team-total-dot" style="background:${t.hex}"></div>
+          <div>
+            <div class="team-total-name">${t.name}</div>
+            <div class="team-total-val">${teamMap[t.name].toLocaleString()}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="grand-bar">
+      <span class="grand-lbl">Grand Total</span>
+      <span class="grand-val">${grandTotal.toLocaleString()}</span>
+      <span class="grand-lbl">gold/min &middot; ${cards.length} player${cards.length!==1?'s':''}</span>
+    </div>
+  `;
+}
+
+// Init
+rebuildMapSelect();
+addCard();
+addCard();
+renderAll();
+</script>
+</body>
+</html>
