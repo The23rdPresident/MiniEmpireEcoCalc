@@ -695,18 +695,28 @@ function makePicker(cardId, field, max, val) {
   </div>`;
 }
 
+let openPickerId = null;
+
+function positionPicker(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const btn  = el.querySelector('.num-pick-btn');
+  const dd   = el.querySelector('.num-pick-dropdown');
+  const rect = btn.getBoundingClientRect();
+  dd.style.top   = (rect.bottom + 4) + 'px';
+  dd.style.left  = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
 function togglePicker(id) {
   const el = document.getElementById(id);
   if (!el) return;
   const dd = el.querySelector('.num-pick-dropdown');
-  const btn = el.querySelector('.num-pick-btn');
   const wasOpen = dd.classList.contains('open');
   closeAllPickers();
   if (!wasOpen) {
-    const rect = btn.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.width = rect.width + 'px';
+    openPickerId = id;
+    positionPicker(id);
     dd.classList.add('open');
     const sel = dd.querySelector('.selected');
     if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -715,16 +725,24 @@ function togglePicker(id) {
 
 function pickVal(pickerId, cardId, field, val) {
   updateCard(cardId, field, val);
-  // updateCard calls renderAll which re-renders, so picker closes naturally
 }
 
 function closeAllPickers() {
   document.querySelectorAll('.num-pick-dropdown.open').forEach(d => d.classList.remove('open'));
+  openPickerId = null;
 }
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.num-pick')) closeAllPickers();
 });
+
+window.addEventListener('scroll', () => {
+  if (openPickerId) positionPicker(openPickerId);
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  if (openPickerId) positionPicker(openPickerId);
+}, { passive: true });
 
 // Init
 rebuildMapSelect();
